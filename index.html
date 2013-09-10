@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html data-ng-app="xoApp">
+<head>
+    <title>SMS Cup Log</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/w2ui-1.2.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-glyphicons.css" rel="stylesheet">
+    <link href="css/xo.css" rel="stylesheet">
+
+    <style>
+        body { padding-top: 70px; }
+        text.cuplbl {
+                text-anchor: middle;
+                dominant-baseline: central;
+        }
+    </style>
+</head>
+<body ng-controller="cupController">
+<script src="js/jquery-2.0.3.min.js"></script>
+<script src="js/w2ui-1.2.min.js"></script>
+<script src="js/angular.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/highcharts.js"></script>
+<script src="js/sugar-1.3.9.min.js"></script>
+<script src="js/d3.v3.min.js"></script>
+<script src="js/colorbrewer.v1.min.js"></script>
+
+<script src="js/app.js"></script></script>
+
+    <script type="text/javascript">
+
+    // Draw SMS and cups in initial configuration
+    // Show/hide/colorize dynamically referring to existing
+    // SVG elements by id (e.g. #cup50, #cuplbl50)
+
+    // Every variable here is a global
+    // Interaction between Angular controller and d3
+    //      operates through globals... (e.g. groupCups)
+    // There must be a better way!
+        var w = 500;
+        var h = 500;
+        
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h);
+            
+        var xScale = d3.scale.linear().domain([-1.0,1.0]).range([0,w]);
+        var yScale = d3.scale.linear().domain([-1.0,1.0]).range([h,0]);
+        var x0 = w/2;
+        var y0 = h/2;
+        var sx = w/2.1; // add margin
+        var sy = -h/2.1; // add margin
+        var groupCups = svg.append("g")
+            .attr("transform", "translate(" + xScale(0) + "," + yScale(0) + ") scale(" + sx + "," + sy + ")" );
+         
+        var ring = d3.svg.arc().innerRadius(0.75).outerRadius(1.0).startAngle(0).endAngle(6.284); // a hair over 2*pi
+        groupCups.append("path")
+            .style("fill", "bbbbbb")
+            .attr("d", ring);
+                    
+        // Generate cup location data
+        var cupRadius = 0.05;
+        var inStartAngle = 2.044;
+        var inCupRadius = 0.82;
+        var inAngleStep = 0.156;
+        var outAngleStep = 0.156;
+        var outStartAngle = 1.971;
+        var outCupRadius = 0.93;
+        var fxCenInCup = function (cup) { return inCupRadius*Math.cos(inStartAngle + (cup-2)/2*inAngleStep); };
+        var fyCenInCup = function (cup) { return inCupRadius*Math.sin(inStartAngle + (cup-2)/2*inAngleStep); };
+        var fxCenOutCup = function (cup) { return outCupRadius*Math.cos(outStartAngle + (cup-1)/2*outAngleStep); };
+        var fyCenOutCup = function (cup) { return outCupRadius*Math.sin(outStartAngle + (cup-1)/2*outAngleStep); };
+        var fcupid = function (cup) { return "cup" + cup; };
+
+        var cuploc = [];
+        for ( var i = 1; i <= 74; i++ ) {
+            var tmp = {};
+            if ( i % 2 ) { // odd
+                tmp.x = fxCenOutCup(i);
+                tmp.y = fyCenOutCup(i);
+            } else { // even
+                tmp.x = fxCenInCup(i);
+                tmp.y = fyCenInCup(i);
+            }
+            tmp.cup = i;
+            cuploc.push(tmp);
+        }
+        
+        // Draw cups
+        var cups = groupCups.selectAll("circle")
+            .data(cuploc)
+            .enter()
+            .append("circle");
+
+        cups.attr("cx", function (d) { return d.x; })
+            .attr("cy", function (d) { return d.y; })
+            .attr("r", cupRadius)
+            .attr("id", function (d) { return "cup" + d.cup; })
+            .attr("fill", "gray")
+            .classed("cup", true);
+            
+         // Draw cup labels
+         var groupCupLabels = svg.append("g");
+
+         var labels = groupCupLabels.selectAll("text")
+            .data(cuploc)
+            .enter()
+            .append("text")
+            .text(function (d) { return d.cup; })
+            .attr("x", function (d) { return x0 + sx*d.x; })
+            .attr("y", function (d) { return y0 + sy*d.y; })
+            .attr("id", function (d) { return "cuplbl" + d.cup; })
+            .classed("cuplbl", true);
+
+        var cuplog = [];
+        d3.json("cuplog.json", function(error, json) {
+            if ( error ) return console.warn(error);
+            // Format is array of two element arrays
+            cuplog = json;
+        });
+    </script>
+    <p>
+    quartz: <input type="checkbox" ng-click="refresh()" ng-model="show_quartz"><br/>
+    cal: <input type="checkbox" ng-click="refresh()" ng-model="show_cal"><br/>
+    mtbstfa: <input type="checkbox" ng-click="refresh()" ng-model="show_mtbstfa"><br/>
+    tmah: <input type="checkbox" ng-click="refresh()" ng-model="show_tmah"><br/>
+
+    <p>
+    Color By:<p>
+    <input type="radio" ng-model="colorby" value="kind">Cup Type<br/>
+    <input type="radio" ng-model="colorby" value="maxload">Max Load<br/>
+    <input type="radio" ng-model="colorby" value="numloads">Number of Loads<br/>
+
+    <p>
+    Color Scale:<p>
+    <input type="radio" ng-model="colorbrew" value="Purples">Purples<br/>
+    <input type="radio" ng-model="colorbrew" value="Blues">Blues<br/>
+    <input type="radio" ng-model="colorbrew" value="Greens">Greens<br/>
+    <input type="radio" ng-model="colorbrew" value="Oranges">Oranges<br/>
+    <input type="radio" ng-model="colorbrew" value="Reds">Reds<br/>
+    <input type="radio" ng-model="colorbrew" value="Greys">Greys<br/>
+   
+</body>
+</html>
