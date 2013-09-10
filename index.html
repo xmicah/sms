@@ -136,12 +136,13 @@
 
     <p>
     Color Scale:<p>
-    <input type="radio" ng-model="colorbrew" value="Purples">Purples<br/>
-    <input type="radio" ng-model="colorbrew" value="Blues">Blues<br/>
-    <input type="radio" ng-model="colorbrew" value="Greens">Greens<br/>
-    <input type="radio" ng-model="colorbrew" value="Oranges">Oranges<br/>
-    <input type="radio" ng-model="colorbrew" value="Reds">Reds<br/>
-    <input type="radio" ng-model="colorbrew" value="Greys">Greys<br/>
-   
+    <select ng-model="colorbrew">
+        <option ng-repeat="cbname in colorbrews" 
+            value="{{cbname}}" 
+            title="{{cbname}}" 
+            ng-selected="cbname == colorbrew">{{cbname}}
+        </option>
+    </select>
+   <p>
 </body>
 </html>

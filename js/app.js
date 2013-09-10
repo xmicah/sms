@@ -75,43 +75,37 @@ app.controller('cupController', function cupController($scope, $http) {
 
     var updateColorScale = function()
     {
-        var stats = {
-            hist: {}
-        };
+        var hist = d3.map();
+        var stats = d3.map();
         var useOrdinal = false;
 
         for ( var cupnum = 0, entry; entry = $scope.cup[cupnum++]; ) {
 
             var value = $scope.cup[cupnum-1][$scope.colorby];
             if ( isNaN(value) ) useOrdinal = true; // If non-numbers, use ordinal
-            if ( !("min" in stats) || value < stats.min ) stats.min = value;
-            if ( !("max" in stats) || value > stats.max ) stats.max = value;
-            if ( value in stats.hist ) {
-                stats.hist[value] ++;
+            if ( !stats.has("min") || value < stats.get("min") ) stats.set("min", value);
+            if ( !stats.has("max") || value > stats.get("max") ) stats.set("max", value);
+            if ( hist.has(value) ) {
+                hist.set(value, hist.get(value) + 1);
             } else {
-                stats.hist[value] = 1;
+                hist.set(value, 1);
             }
         }
-        var values = [];
-        for (var key in stats.hist ) {
-            if ( stats.hist.hasOwnProperty(key) ) values[values.length] = key;
-        }
-        var ncolors = values.length;
-        if ( ncolors < 2 ) return;
+        var uniques = hist.keys();
+        var ncolors = uniques.length;
+        if ( ncolors < 3 ) return;
         if ( ncolors > 9 ) ncolors = 9;
         if ( useOrdinal ) {
-            $scope.colorScale = d3.scale.ordinal()
-                .domain(values)
-                .range(colorbrewer[$scope.colorbrew][ncolors]);
-        } else if ( values.length > 9 ) {
-            $scope.colorScale = d3.scale.quantize()
-                .domain(values)
-                .range(colorbrewer[$scope.colorbrew][ncolors]);
+            $scope.colorScale = d3.scale.ordinal();
+        } else if ( uniques.length > 9 ) {
+            $scope.colorScale = d3.scale.quantile();
         } else {
-            $scope.colorScale = d3.scale.quantile()
-                .domain(values)
-                .range(colorbrewer[$scope.colorbrew][ncolors]);
+            $scope.colorScale = d3.scale.quantile();
         }
+        $scope.colorScale
+                .domain(uniques)
+                .range(colorbrewer[$scope.colorbrew][ncolors]);
+
         $scope.refresh();
     }
 
