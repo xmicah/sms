@@ -11,8 +11,9 @@ app.controller('cupController', function cupController($scope, $http) {
     $scope.logLoaded = false;
     $scope.colorby = "kind";
     $scope.colorbrew = "Reds";
+    $scope.ncolors = 6;
 
-    $scope.colorScale = d3.scale.ordinal()
+    var kindColorScale = d3.scale.ordinal()
         .domain(['q','c','m','t'])
         .range(["orange","blue","purple","green"]);
 
@@ -75,37 +76,32 @@ app.controller('cupController', function cupController($scope, $http) {
 
     var updateColorScale = function()
     {
-        var hist = d3.map();
-        var stats = d3.map();
-        var useOrdinal = false;
-
-        for ( var cupnum = 0, entry; entry = $scope.cup[cupnum++]; ) {
-
-            var value = $scope.cup[cupnum-1][$scope.colorby];
-            if ( isNaN(value) ) useOrdinal = true; // If non-numbers, use ordinal
-            if ( !stats.has("min") || value < stats.get("min") ) stats.set("min", value);
-            if ( !stats.has("max") || value > stats.get("max") ) stats.set("max", value);
-            if ( hist.has(value) ) {
-                hist.set(value, hist.get(value) + 1);
-            } else {
-                hist.set(value, 1);
-            }
-        }
-        var uniques = hist.keys();
-        var ncolors = uniques.length;
-        if ( ncolors < 3 ) return;
-        if ( ncolors > 9 ) ncolors = 9;
-        if ( useOrdinal ) {
-            $scope.colorScale = d3.scale.ordinal();
-        } else if ( uniques.length > 9 ) {
-            $scope.colorScale = d3.scale.quantile();
+        var labels = []; 
+        var colorArray = colorbrewer[$scope.colorbrew][$scope.ncolors];
+        //colorArray.unshift("white");
+        
+        if ( $scope.colorby == "kind" ) {
+            $scope.colorScale = kindColorScale;
         } else {
-            $scope.colorScale = d3.scale.quantile();
+            var domain = [0,1]; // placeholder
+            var labels = [];
+            if ( $scope.colorby == "maxload" ) {
+                domain = [100,250];
+                labels = [0,125,150,175,200,225];
+            } else if ( $scope.colorby == "numloads" ) {
+                domain = [0,5];
+                labels = d3.range(0,5);
+            }
+            $scope.colorScale = d3.scale.quantize()
+                .domain(domain)
+                .range(colorArray);
+            legend.selectAll("rect")
+                .attr("fill", function (d) { return $scope.colorScale(labels[d])})
+                .style("visibility", function (d) { return isNaN(labels[d]) ? "hidden" : "visible"});
+            legend.selectAll("text")
+                .text(function (d) { return d == labels.length-1 ? labels[d] + "+" : labels[d]; })
+                .style("visibility", function (d) { return isNaN(labels[d]) ? "hidden" : "visible"});
         }
-        $scope.colorScale
-                .domain(uniques)
-                .range(colorbrewer[$scope.colorbrew][ncolors]);
-
         $scope.refresh();
     }
 
@@ -133,17 +129,4 @@ app.controller('cupController', function cupController($scope, $http) {
     // Initial functor settings
     isCupVisible = visibleByKind;
 
-    // $scope.vizcups = function()
-    // {
-    //     var cupid, cuplblid;
-    //     for (var i = 0, cup; cup = $scope.cup[i++];) {
-    //         cupid = "#cup" + cup.number;
-    //         cuplblid = "#cuplbl" + cup.number;
-    //         $scope.cup_circle_group.select(cupid)
-    //             .attr("hidden", cup.show)
-    //             .attr("fill", $scope.cupKindToColor(cup.kind));
-    //         $scope.cup_label_group.select(cuplblid)
-    //             .attr("hidden", cup.show);
-    //     }
-    // }
 });

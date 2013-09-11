@@ -15,6 +15,10 @@
                 text-anchor: middle;
                 dominant-baseline: central;
         }
+        text.legendlbl {
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
     </style>
 </head>
 <body ng-controller="cupController">
@@ -115,12 +119,34 @@
             .attr("id", function (d) { return "cuplbl" + d.cup; })
             .classed("cuplbl", true);
 
-        var cuplog = [];
-        d3.json("cuplog.json", function(error, json) {
-            if ( error ) return console.warn(error);
-            // Format is array of two element arrays
-            cuplog = json;
-        });
+        // Draw legend
+        var legend = d3.select("body")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", 40);
+
+        legend.selectAll("rect")
+            .data(d3.range(0,9))
+            .enter()
+            .append("rect")
+            .attr("id",  function (d) { return "legendBox" + d; })
+            .attr("width", 30)
+            .attr("height", 20)
+            .attr("y", 20)
+            .attr("x", function (d,i) { return i*30; })
+            .attr("fill", "black")
+            .style("visibility", "hidden");
+ 
+         legend.selectAll("text")
+            .data(d3.range(0,9))
+            .enter()
+            .append("text")
+            .text( function (d) { return d; })
+            .attr("x", function (d, i) { return 15 + i*30; })
+            .attr("y", 10)
+            .classed("legendlbl", true)
+            .style("visibility", "hidden");
+
     </script>
     <p>
     quartz: <input type="checkbox" ng-click="refresh()" ng-model="show_quartz"><br/>
