@@ -41,7 +41,7 @@ app.controller('cupController', function cupController($scope, $http) {
     });
 
     // Read static cup log file
-    $http.get('cuplog.json').success(function(cuplog) {
+    $http.get('tbcuplog.json').success(function(cuplog) {
         var cupnum, lbf;
         for (var i = 0, entry; entry = cuplog[i++];) {
             cupnum = entry[0];
@@ -82,6 +82,7 @@ app.controller('cupController', function cupController($scope, $http) {
         
         if ( $scope.colorby == "kind" ) {
             $scope.colorScale = kindColorScale;
+            labels = ['Q','C', 'M', 'T']
         } else {
             var domain = [0,1]; // placeholder
             var labels = [];
@@ -95,13 +96,15 @@ app.controller('cupController', function cupController($scope, $http) {
             $scope.colorScale = d3.scale.quantize()
                 .domain(domain)
                 .range(colorArray);
-            legend.selectAll("rect")
-                .attr("fill", function (d) { return $scope.colorScale(labels[d])})
-                .style("visibility", function (d) { return isNaN(labels[d]) ? "hidden" : "visible"});
-            legend.selectAll("text")
-                .text(function (d) { return d == labels.length-1 ? labels[d] + "+" : labels[d]; })
-                .style("visibility", function (d) { return isNaN(labels[d]) ? "hidden" : "visible"});
         }
+
+        legend.selectAll("rect")
+            .attr("fill", function (d) { return $scope.colorScale(labels[d])})
+            .style("visibility", function (d,i) { return i < labels.length ? "visible" : "hidden"});
+        legend.selectAll("text")
+            .text(function (d) { return labels[d]; })
+            .style("visibility", function (d,i) { return i < labels.length ? "visible" : "hidden"});
+
         $scope.refresh();
     }
 
