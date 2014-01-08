@@ -7,15 +7,22 @@ app.controller('cupController', function cupController($scope, $http) {
     $scope.show_cal = true;
     $scope.show_mtbstfa = true;
     $scope.show_tmah = true;
+    $scope.show_deriv = true;
+    $scope.show_nocup = false;
     $scope.kindLoaded = false;
     $scope.logLoaded = false;
+    $scope.droplogLoaded = false;
     $scope.colorby = "kind";
     $scope.colorbrew = "Reds";
     $scope.ncolors = 6;
 
     var kindColorScale = d3.scale.ordinal()
-        .domain(['q','c','m','t'])
-        .range(["orange","blue","purple","green"]);
+        .domain(['q','c','m','t','d','n'])
+        .range(["orange","blue","purple","green","red","black"]);
+
+    var sampleColorScale = d3.scale.ordinal()
+        .domain(['Rocknest','John_Klein','Cumberland',''])
+        .range(["purple","green","red","black"]);
 
     $scope.colorbrews = ["Reds", "Greens", "Blues", "Purples", "Oranges", "BuGn"];
 
@@ -29,11 +36,12 @@ app.controller('cupController', function cupController($scope, $http) {
         $scope.cup[i].number = i+1;
         $scope.cup[i].kind = '';
         $scope.cup[i].maxload = 0;
-        $scope.cup[i].numloads = 0;
+        $scope.cup[i].numdrops = 0;
+        $scope.cup[i].sample = '';
     }
 
     // Read static cup type file and update cup data
-    $http.get('cuptype.json').success(function(cuptypes) {
+    $http.get('tbcuptype.json').success(function(cuptypes) {
         for ( var cupnum = 0, entry; entry = cuptypes[cupnum++]; ) {
             $scope.cup[cupnum-1].kind = entry;
         }
@@ -49,10 +57,22 @@ app.controller('cupController', function cupController($scope, $http) {
             if ( $scope.cup[cupnum-1].maxload < lbf ) {
                 $scope.cup[cupnum-1].maxload = lbf;
             }
-            $scope.cup[cupnum-1].numloads ++; 
         }
         $scope.logLoaded = true;
     });
+
+    // Read static cup drop log file
+    $http.get('tbcupdroplog.json').success(function(cuplog) {
+        var cupnum, sample;
+        for (var i = 0, entry; entry = cuplog[i++];) {
+            cupnum = entry[0];
+            sample = entry[1];
+            $scope.cup[cupnum-1].numdrops ++;
+            $scope.cup[cupnum-1].sample = sample;
+        }
+        $scope.droplogLoaded = true;
+    });
+
 
     // Private methods
     var getCupColor = function (cupnum) {
@@ -70,7 +90,9 @@ app.controller('cupController', function cupController($scope, $http) {
         var visible = ( kind == "q" && $scope.show_quartz )
             || ( kind == "c" && $scope.show_cal )
             || ( kind == "m" && $scope.show_mtbstfa )
-            || ( kind == "t" && $scope.show_tmah );
+            || ( kind == "t" && $scope.show_tmah )
+            || ( kind == "d" && $scope.show_deriv )
+            || ( kind == "n" && $scope.show_nocup );
         return visible;
     }
 
@@ -82,14 +104,17 @@ app.controller('cupController', function cupController($scope, $http) {
         
         if ( $scope.colorby == "kind" ) {
             $scope.colorScale = kindColorScale;
-            labels = ['Q','C', 'M', 'T']
+            labels = ['Q','C','M','T','D','N'];
+        } else if ( $scope.colorby == "sample" ) {
+            $scope.colorScale = sampleColorScale;
+            labels = ['RN','JK','CB','0']
         } else {
             var domain = [0,1]; // placeholder
             var labels = [];
             if ( $scope.colorby == "maxload" ) {
                 domain = [100,250];
                 labels = [0,125,150,175,200,225];
-            } else if ( $scope.colorby == "numloads" ) {
+            } else if ( $scope.colorby == "numdrops" ) {
                 domain = [0,5];
                 labels = d3.range(0,5);
             }
@@ -126,6 +151,7 @@ app.controller('cupController', function cupController($scope, $http) {
     // Trigger refresh on state change
     $scope.$watch('kindLoaded', $scope.refresh);
     $scope.$watch('logLoaded', $scope.refresh);
+    $scope.$watch('droplogLoaded', $scope.refresh);
     $scope.$watch('colorby', updateColorScale);
     $scope.$watch('colorbrew', updateColorScale);
 
